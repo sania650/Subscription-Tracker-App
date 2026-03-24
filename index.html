@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    background: linear-gradient(160deg,   #0f0f0f 0%, #f0c040 50%, #413921    100%);
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a35;
+    --accent: #f0c040;
+    --accent2: #e8763a;
+    --text: #f0eee8;
+    --text-muted: #7a7a8a;
+    --red: #e85c5c;
+    --green: #5ce898;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(240,192,64,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(232,118,58,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: rgb(211, 181, 8);
+  }
+  .logo span { color: white; }
+
+  .tagline {
+    font-size: 11px;
+    color: rgb(255, 217, 0);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .burn-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 36px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    color: #0f0f0f;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .burn-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .burn-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(14, 13, 13);
+    margin-bottom: 8px;
+  }
+
+  .burn-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 37px;
+    font-weight: 700;
+    color: black;
+     line-height: 1.2;
+    vertical-align: baseline;
+    
+  }
+
+  .burn-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .stat-pill {
+    background: rgb(221, 204, 22);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: black;
+    white-space: nowrap;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 680px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .burn-amount { font-size: 28px; }
+    .burn-card { flex-direction: column; align-items: flex-start; padding: 20px; }
+    .burn-stats { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(250, 250, 250);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .sub-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .sub-item {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    animation: slideIn 0.3s ease;
+    position: relative;
+  }
+  .sub-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.sub-actions {
+  display: flex;
+  gap: 4px;
+}
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .sub-item:hover { border-color: #3a3a4a; transform: translateX(2px); }
+
+  .sub-item.upcoming {
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 20px rgba(240,192,64,0.12);
+    background: white;
+  }
+
+  .sub-item.upcoming::after {
+    content: 'DUE NEXT';
+    position: absolute;
+    top: -1px; right: 16px;
+    background: rgb(211,181,8);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 3px 8px;
+    border-radius: 0 0 6px 6px;
+  }
+
+  .cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .sub-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: black;
+  }
+
+  .sub-item.upcoming .sub-name { font-weight: 700; }
+  .sub-meta { font-size: 11px; color: black; margin-top: 2px; }
+
+  .sub-cost {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: black;
+    white-space: nowrap;
+  }
+
+  .sub-item.upcoming .sub-cost { color: var(--accent); }
+  .edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1;
+  
+}
+.edit-btn:hover { background: rgba(240,192,64,0.2); }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s, background 0.2s;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .delete-btn:hover { color: var(--red); background: rgba(232,92,92,0.1); }
+
+  .empty-state {
+    background: white;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    text-align: center;
+    color: black;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+
+  .form-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: sticky;
+    top: 24px;
+  }
+
+  .form-group { margin-bottom: 14px; }
+
+  label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: black;
+    margin-bottom: 6px;
+  }
+
+  input, select {
+    width: 100%;
+    background: rgb(255, 254, 252);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: black;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input::placeholder { color: #4a4a5a; }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(240,192,64,0.1);
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7a8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+  }
+
+  .add-btn {
+    width: 100%;
+    background: rgb(211, 181, 8);
+    color: #060606;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 13px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(240,192,64,0.3); filter: brightness(1.05); }
+  .add-btn:active { transform: translateY(0); box-shadow: none; }
+  .add-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .error-msg { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .error-msg.show { display: block; }
+
+  .cat-entertainment { background: #8b5cf6; }
+  .cat-health        { background: #10b981; }
+  .cat-utilities     { background: #3b82f6; }
+  .cat-finance       { background: #f59e0b; }
+  .cat-food          { background: #ef4444; }
+  .cat-other         { background: #6b7280; }
+
+  .days-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 100px;
+    background: #f0c040;
+    color: black;
+    margin-top: 3px;
+  }
+
+  /* Calendar */
+  .cal-wrap { position: relative; display: flex; align-items: stretch; }
+  .cal-wrap input { flex: 1; border-radius: 8px 0 0 8px !important; border-right: none !important; cursor: pointer; }
+  .cal-toggle-btn {
+    background: rgb(211,181,8);
+    border: 1px solid #2a2a35;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    padding: 0 13px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: filter 0.15s;
+    line-height: 1;
+  }
+  .cal-toggle-btn:hover { filter: brightness(1.15); }
+  .cal-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 260px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    z-index: 9999;
+    padding: 10px;
+  }
+  .cal-popup.open { display: block; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: #111; }
+  .cal-nav {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 26px; height: 26px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #333; padding: 0; line-height: 1;
+  }
+  .cal-nav:hover { background: rgba(240,192,64,0.25); }
+  .cal-dow {
+    display: grid;
+    grid-template-columns: repeat(7,1fr);
+    text-align: center;
+    font-size: 10px;
+    color: #999;
+    margin-bottom: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+  .cal-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+  .cal-cell {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #111;
+    transition: background 0.12s;
+  }
+  .cal-cell:hover { background: rgba(240,192,64,0.25); }
+  .cal-cell.active { background: rgb(211,181,8); color: #fff; font-weight: 700; }
+  .cal-cell.empty { cursor: default; pointer-events: none; }
+
+  /* ── Export Buttons ──────────────────────────────────────── */
+.export-btns {
+  display: flex;
+  gap: .75rem;
+  margin-bottom: 1rem;
+  justify-content: flex-end;
+}
+.export-btn {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  padding: .5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: none;
+  font-weight: 700;
+  transition: opacity .2s, transform .15s;
+}
+.export-btn:hover { opacity: .85; transform: translateY(-1px); }
+.pdf-btn   { background: #ff3d71; color: #fff; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">Subscription <span>Tracker</span></div>
+    <div class="tagline">Monthly Subscription Manager</div>
+  </header>
+
+  <div class="burn-card">
+    <div>
+      <div class="burn-label">Total Monthly Subscription Amount</div>
+      <div class="burn-amount" id="totalAmount">$0.00</div>
+    </div>
+    <div class="burn-stats">
+      <div class="stat-pill"><span id="subCount">0</span> subscriptions</div>
+      <div class="stat-pill">Annual: <span id="annualAmount">$0.00</span></div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+
+    <div>
+      <div class="section-title">Your Subscriptions</div>
+      
+      <div class="sub-list" id="subList">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📋</div>
+          No subscriptions yet.<br>Add one using the form →
+        </div>
+        
+      </div><br>
+      <button class="export-btn pdf-btn" onclick="downloadPDF()">⬇ Download PDF</button>
+    </div>
+
+    <div>
+      <div class="section-title">Add Subscription</div>
+      
+      <div class="form-card">
+        <div class="form-group">
+          <label>Platform Name</label>
+          <input type="text" id="inputName" placeholder="" maxlength="40">
+          <div class="error-msg" id="errName">Please enter a name.</div>
+        </div>
+        <div class="form-group">
+          <label>Monthly Cost ($)</label>
+          <input type="number" id="inputCost" placeholder="" min="0" step="0.01">
+          <div class="error-msg" id="errCost">Please enter a valid cost.</div>
+        </div>
+        <div class="form-group">
+          <label>Billing Date</label>
+          <div class="cal-wrap">
+            <input type="text" id="inputDay" placeholder="Select billing date" readonly>
+            <button type="button" id="calToggleBtn" class="cal-toggle-btn">&#128197;</button>
+            <div class="cal-popup" id="calPopup">
+              <div class="cal-head">
+                <button type="button" id="calPrev" class="cal-nav">&#8249;</button>
+                <span id="calTitle" class="cal-title"></span>
+                <button type="button" id="calNext" class="cal-nav">&#8250;</button>
+              </div>
+              <div class="cal-dow">
+    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+  </div>
+  <div class="cal-days" id="calDays"></div>
+</div>
+</div>
+          
+          <div class="error-msg" id="errDay">Please select a billing date.</div>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="inputCategory">
+            <option value="Entertainment">🎬 Entertainment</option>
+            <option value="Health">🏃 Health</option>
+            <option value="Utilities">⚡ Utilities</option>
+            <option value="Finance">💰 Finance</option>
+            <option value="Food">🍕 Food</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+        <button class="add-btn" id="addBtn">
+          <span>+</span> Add Subscription
+        </button>
+      </div>
+    </div>
+    </div>
+    
+
+  </div>
+  
+</div>
+
+<script>
+  const API = 'http://localhost:3000/api/subscriptions';
+  let subscriptions = [];
+
+  // ── Load from MySQL via API ──
+  async function dbLoad() {
+    try {
+      const res  = await fetch(API);
+      subscriptions = await res.json();
+    } catch(e) {
+      console.error('Could not connect to server:', e.message);
+      subscriptions = [];
+    }
+    render();
+  }
+
+  // ── Add to MySQL via API ─────────────────────────────────────
+  async function dbInsert(sub) {
+    const res  = await fetch(API, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify(sub)
+    });
+    return await res.json(); // returns { id, name, cost, day, category }
+  }
+
+  // ── Delete from MySQL via API ────────────────────────────────
+  async function dbDelete(id) {
+    await fetch(`${API}/${id}`, { method: 'DELETE' });
+  }
+
+  const catColors = {
+    Entertainment: 'cat-entertainment', Health: 'cat-health',
+    Utilities: 'cat-utilities', Finance: 'cat-finance',
+    Food: 'cat-food', Other: 'cat-other'
+  };
+
+  const catEmojis = {
+    Entertainment: '🎬', Health: '🏃', Utilities: '⚡',
+    Finance: '💰', Food: '🍕', Other: '📦'
+  };
+
+  function getDaysUntilNext(day) {
+    const today = new Date();
+    const todayDay   = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear  = today.getFullYear();
+    let nextDate = new Date(todayYear, todayMonth, day);
+    if (day <= todayDay) nextDate = new Date(todayYear, todayMonth + 1, day);
+    if (nextDate.getDate() !== day) nextDate = new Date(todayYear, nextDate.getMonth(), 0);
+    return Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+  }
+
+  function findUpcomingIndex() {
+    if (!subscriptions.length) return -1;
+    let minDays = Infinity, minIdx = -1;
+    subscriptions.forEach((s, i) => {
+      const d = getDaysUntilNext(s.day);
+      if (d < minDays) { minDays = d; minIdx = i; }
+    });
+    return minIdx;
+  }
+
+  function render() {
+    const list  = document.getElementById('subList');
+    const empty = document.getElementById('emptyState');
+
+
+    const total = subscriptions.reduce((sum, s) => sum + parseFloat(s.cost), 0);
+    document.getElementById('totalAmount').innerHTML = '<span style="font-size:24px;vertical-align:middle">$</span>' + total.toFixed(2);
+    
+    document.getElementById('annualAmount').textContent = '$' + (total * 12).toFixed(2);
+    document.getElementById('subCount').textContent     = subscriptions.length;
+
+    Array.from(list.querySelectorAll('.sub-item')).forEach(el => el.remove());
+
+    if (!subscriptions.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    const upcomingIdx = 0; // always first after sort
+    const sorted = [...subscriptions].sort((a, b) => getDaysUntilNext(a.day) - getDaysUntilNext(b.day));
+sorted.forEach((s, i) => {
+      const days = getDaysUntilNext(s.day);
+      const isUpcoming = (i === upcomingIdx);
+      const item = document.createElement('div');
+      item.className = 'sub-item' + (isUpcoming ? ' upcoming' : '');
+      const dayLabel = days === 0 ? 'Today!' : days === 1 ? 'Tomorrow' : `In ${days} days`;
+      
+      item.innerHTML = `
+  <div class="cat-dot ${catColors[s.category] || 'cat-other'}"></div>
+  <div class="sub-info">
+    <div class="sub-name">${escHtml(s.name)}</div>
+    <div class="sub-meta">${catEmojis[s.category] || '📦'} ${s.category} &nbsp;·&nbsp;Bills on ${getNextBillingDate(s.day)}</div>
+    <div class="days-badge">${dayLabel}</div>
+  </div>
+  <div class="sub-right">
+    <div class="sub-cost">$${parseFloat(s.cost).toFixed(2)}</div>
+    <div class="sub-actions">
+      <button class="edit-btn" onclick="editSub(${s.id})" title="Edit">✏️</button>
+      <button class="delete-btn" onclick="deleteSub(${s.id})" title="Remove">✕</button>
+    </div>
+  </div>
+`;
+
+      list.appendChild(item);
+    });
+    
+  }
+  
+
+  
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function deleteSub(id) {
+    await dbDelete(id);
+    subscriptions = subscriptions.filter(s => s.id !== id);
+    render();
+  }
+
+  function clearError(id) { document.getElementById(id).classList.remove('show'); }
+  
+
+  async function addSubscription() {
+  const nameEl = document.getElementById('inputName');
+  const costEl = document.getElementById('inputCost');
+  const dayEl  = document.getElementById('inputDay');
+  const catEl  = document.getElementById('inputCategory');
+  const btn    = document.getElementById('addBtn');
+  const editId = parseInt(btn.dataset.editId);
+  let valid = true;
+
+    const name = nameEl.value.trim();
+    if (!name) { document.getElementById('errName').classList.add('show'); valid = false; }
+    else clearError('errName');
+
+    const cost = parseFloat(costEl.value);
+    if (isNaN(cost) || cost < 0) { document.getElementById('errCost').classList.add('show'); valid = false; }
+    else clearError('errCost');
+
+    const day = parseInt(dayEl.dataset.dayNum);
+    if (isNaN(day) || day < 1 || day > 31) { document.getElementById('errDay').classList.add('show'); valid = false; }
+    else clearError('errDay');
+
+    if (!valid) return;
+
+btn.disabled = true;
+btn.textContent = 'Saving…';
+
+try {
+  if (editId) {
+    // UPDATE — do not insert new row
+    await fetch(`${API}/${editId}`, {
+      method : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ name, cost, day, category: catEl.value })
+    });
+    const idx = subscriptions.findIndex(s => s.id === editId);
+    if (idx !== -1) subscriptions[idx] = { id: editId, name, cost, day, category: catEl.value };
+    delete btn.dataset.editId;
+    btn.style.background = 'rgb(211,181,8)';
+  } else {
+    // INSERT new row
+    const saved = await dbInsert({ name, cost, day, category: catEl.value });
+    subscriptions.push(saved);
+  }
+  render();
+
+      // reset form
+      nameEl.value = '';
+      costEl.value = '';
+      dayEl.value  = '';
+      dayEl.dataset.dayNum = '';
+      calSelectedDay = null;
+      catEl.selectedIndex = 0;
+      nameEl.focus();
+    } catch(e) {
+      alert('Failed to save. Is the server running?');
+      console.error(e);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<span>+</span> Add Subscription';
+  }
+
+  ['inputName', 'inputCost'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') addSubscription();
+    });
+  });
+
+  document.getElementById('addBtn').addEventListener('click', addSubscription);
+//edit sub funct
+  function editSub(id) {
+  const s = subscriptions.find(x => x.id === id);
+  if (!s) return;
+
+  document.getElementById('inputName').value = s.name;
+  document.getElementById('inputCost').value = s.cost;
+
+  const dayEl = document.getElementById('inputDay');
+  dayEl.value = 'Day ' + s.day;
+  dayEl.dataset.dayNum = s.day;
+
+  document.getElementById('inputCategory').value = s.category;
+
+  const btn = document.getElementById('addBtn');
+  btn.innerHTML = '💾 Update Subscription';
+  btn.style.background = 'rgb(60,180,100)';
+  btn.dataset.editId = id;
+
+  // scroll to form
+  document.getElementById('inputName').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('inputName').focus();
+}
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // 1. Get current timestamp
+  const now = new Date();
+  const timestamp = now.toLocaleString(); // Format: "MM/DD/YYYY, HH:MM:SS"
+
+  // Title
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Subscription Tracker', doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+
+   // Table
+  const total = subscriptions.reduce((sum, s) => sum + parseFloat(s.cost), 0);
+  
+  doc.autoTable({
+    startY: 30,
+    head: [['SL.No', 'Name', 'Category', 'Billing Day', 'Monthly Cost']],
+    body: subscriptions.map((s, i) => [
+      i + 1,
+      s.name,
+      s.category,
+      getNextBillingDate(s.day),
+      '$' + parseFloat(s.cost).toFixed(2)
+    ]),
+    foot: [['', '', '', 'Total', '$' + total.toFixed(2)]],
+    showFoot: 'lastPage',
+  
+    headStyles: { fillColor: [211, 181, 8], textColor: 0 },
+    footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [240, 240, 240] },
+    styles: { fontSize: 11 },
+    
+    // 2. The Footer Logic
+    didDrawPage: function (data) {
+      const pageSize = doc.internal.pageSize;
+      const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+      const pageWidth = pageSize.width ? pageSize.width : pageSize.getWidth();
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100);
+
+      
+
+      // Right side: Page Number
+      const str = "Page " + doc.internal.getNumberOfPages();
+      doc.text(str, pageWidth - data.settings.margin.right - 15, pageHeight - 10);
+      // Left side: Timestamp
+      doc.text(`Generated at: ${timestamp}`, data.settings.margin.left, pageHeight - 10);
+    }
+    
+  });
+
+  doc.save(`subscriptions.pdf`);
+}
+
+  // ── Calendar ─────────────────────────────────────────────────
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  let calYear, calMonth, calSelectedDay = null;
+
+  function calRender() {
+    document.getElementById('calTitle').textContent = MONTHS[calMonth] + ' ' + calYear;
+    const grid = document.getElementById('calDays');
+    grid.innerHTML = '';
+    const firstDow    = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDow; i++) {
+      const b = document.createElement('div');
+      b.className = 'cal-cell empty';
+      grid.appendChild(b);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'cal-cell' + (d === calSelectedDay ? ' active' : '');
+      cell.textContent = d;
+      (function(day, month, year) {
+        cell.addEventListener('click', function(e) {
+          e.stopPropagation();
+          calSelectedDay = day;
+          const inp = document.getElementById('inputDay');
+          inp.value = MONTHS[month] + ' ' + day + ', ' + year;
+          inp.dataset.dayNum = day;
+          clearError('errDay');
+          calClose();
+          calRender();
+        });
+      })(d, calMonth, calYear);
+      grid.appendChild(cell);
+    }
+  }
+
+  function calOpen() {
+    const now = new Date();
+    calYear = now.getFullYear(); calMonth = now.getMonth();
+    calRender();
+    document.getElementById('calPopup').classList.add('open');
+  }
+
+  function calClose() { document.getElementById('calPopup').classList.remove('open'); }
+  function getNextBillingDate(day) {
+  const today = new Date();
+  let d = new Date(today.getFullYear(), today.getMonth(), day);
+  if (day <= today.getDate()) d = new Date(today.getFullYear(), today.getMonth() + 1, day);
+  return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+  document.getElementById('calToggleBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('calPopup').classList.contains('open') ? calClose() : calOpen();
+  });
+
+  document.getElementById('calPrev').addEventListener('click', function(e) {
+    e.stopPropagation();
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+    calRender();
+  });
+
+  document.getElementById('calNext').addEventListener('click', function(e) {
+    e.stopPropagation();
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+    calRender();
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!document.getElementById('calPopup').contains(e.target) &&
+        e.target.id !== 'calToggleBtn') calClose();
+  });
+  // ─────────────────────────────────────────────────────────────
+
+  dbLoad();
+</script>
+</body>
+</html>
